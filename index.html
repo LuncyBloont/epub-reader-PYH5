@@ -15,8 +15,8 @@
             }
 
             function fixEle(es, attr, click) {
-                for (i in links) {
-                    let a = links[i]
+                for (i in es) {
+                    let a = es[i]
                     if (a[attr]) {
                         let path = a[attr]
                         let mask = window.location.protocol + '//' + window.location.host
@@ -42,13 +42,14 @@
                 let box = document.getElementById('pageBox')
                 let xml = new XMLHttpRequest()
                 xml.addEventListener('load', (ev) => {
-                    content = new DOMParser().parseFromString(xml.responseText, 'text/html')
-                    head = content.getElementsByTagName('head').innerHTML
-                    body = content.getElementsByTagName('body').innerHTML
-                    box.innerHTML = xml.responseText
-                    fixEle(links = document.getElementsByTagName('a'), 'href', true)
-                    fixEle(links = document.getElementsByTagName('img'), 'src', false)
-                    fixEle(links = document.getElementsByTagName('link'), 'href', false)
+                    let data = document.createElement('div')
+                    data.innerHTML = xml.responseText
+                    
+                    fixEle(data.getElementsByTagName('a'), 'href', true)
+                    fixEle(data.getElementsByTagName('img'), 'src', false)
+                    fixEle(data.getElementsByTagName('link'), 'href', false)
+
+                    box.innerHTML = data.innerHTML
                 })
                 xml.open('GET', path)
                 xml.send()
