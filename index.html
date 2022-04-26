@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <script src="meta.js"></script>
+        <script>
+            let metaData = ''
+            let rootPath = ''
+            let title = ''
+
+            class Page {
+                id = ''
+                path = ''
+                title = ''
+            }
+
+            function fixEle(es, attr, click) {
+                for (i in links) {
+                    let a = links[i]
+                    if (a[attr]) {
+                        let path = a[attr]
+                        let mask = window.location.protocol + '//' + window.location.host
+                        if (path.indexOf(mask) < 0 && (path.indexOf('http://') >= 0 || path.indexOf('https://') >= 0)) {
+                            continue
+                        }
+                        if (path.indexOf(mask) >= 0) {
+                            path = path.substring(path.indexOf(mask) + mask.length, path.length)
+                        }
+                        a[attr] = rootPath + path
+                        a.className += 'flink'
+                        if (click) {
+                            a.addEventListener('click', (ev) => {
+                                ev.preventDefault()
+                                openPage(rootPath + path)
+                            })
+                        }
+                    }
+                }
+            }
+
+            function openPage(path) {
+                let box = document.getElementById('pageBox')
+                let xml = new XMLHttpRequest()
+                xml.addEventListener('load', (ev) => {
+                    content = new DOMParser().parseFromString(xml.responseText, 'text/html')
+                    head = content.getElementsByTagName('head').innerHTML
+                    body = content.getElementsByTagName('body').innerHTML
+                    box.innerHTML = xml.responseText
+                    fixEle(links = document.getElementsByTagName('a'), 'href', true)
+                    fixEle(links = document.getElementsByTagName('img'), 'src', false)
+                    fixEle(links = document.getElementsByTagName('link'), 'href', false)
+                })
+                xml.open('GET', path)
+                xml.send()
+            }
+        </script>
+        <style>
+            #table {
+                position: fixed;
+                left: -180pt;
+                top: 10%;
+                z-index: 10;
+                width: 200pt;
+                height: 80%;
+                overflow: auto;
+                transition: all 1s 0s ease;
+                background: #EAEAEA;
+                border-radius: 0px;
+                padding: 14pt;
+                box-sizing: border-box;
+            }
+            #table:hover {
+                left: 0pt;
+            }
+
+            #pageBox {
+                width: 100%;
+                padding: 84pt 56pt;
+                box-sizing: border-box;
+            }
+
+            .flink {
+                color: blueviolet;
+                cursor: pointer;
+            }
+            .flink:hover {
+                color: blue;
+            }
+            .flink:visited {
+                color: cadetblue;
+            }
+
+            .item {
+                padding: 12pt 2pt;
+                box-sizing: border-box;
+            }
+        </style>
+    </head>
+    <body>
+        <div id = "table">
+
+        </div>
+        <div id = "pageBox">
+
+        </div>
+        <script>
+
+            function renderBook() {
+                let parse = new DOMParser()
+                let xdom = parse.parseFromString(metaData, 'text/xml')
+
+                let pages = []
+                let map = {}
+
+                title = xdom.getElementsByTagName('dc:title')[0].innerHTML
+                document.getElementById('pageBox').innerHTML = '<div class="title">' + title + '</div>'
+
+                let items = xdom.getElementsByTagName('item')
+                for (let i = 0; i < items.length; i++) {
+                    if (!items[i].hasAttribute('media-type') || items[i].getAttribute('media-type').indexOf('html') >= 0) {
+                        let page = new Page();
+                        page.id = items[i].getAttribute('id')
+                        page.path = items[i].getAttribute('href')
+                        pages.push(page)
+                        map[page.path] = page
+                    }
+                }
+
+                let refs = xdom.getElementsByTagName('reference')
+                for (let i = 0; i < refs.length; i++) {
+                    if (map[refs[i].getAttribute('href')]) {
+                        map[refs[i].getAttribute('href')].title = refs[i].getAttribute('title')
+                    }
+                }
+
+                for (i in pages) {
+                    let table = document.getElementById('table')
+                    let item = document.createElement('div')
+                    let call = 'openPage(\'' + rootPath + pages[i].path + '\')'
+                    item.innerHTML = '<div class="flink item" onclick="' + call + '">' + (pages[i].title.length > 0 ? pages[i].title : pages[i].id) + '</div>'
+                    table.append(item)
+                }
+            }
+
+            let xml = new XMLHttpRequest()
+            xml.addEventListener('load', (ev) => {
+                metaData = xml.responseText
+                renderBook()
+            })
+            xml.open('GET', meta.metaPath)
+            rootPath = (meta.metaPath + '').substring(0, (meta.metaPath + '').lastIndexOf('/') + 1)
+            xml.send()
+        </script>
+    </body>
+</html>
