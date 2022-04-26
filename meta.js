@@ -1,4 +1,4 @@
 
 var meta = {
-"metaPath": "/OPS/fb.opf"
+"metaPath": "/content.opf"
 }
