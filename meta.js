@@ -1,4 +1,4 @@
 
 var meta = {
-"metaPath": "/OEBPS/content.opf"
+"metaPath": "/EPUB/content.opf"
 }

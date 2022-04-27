@@ -8,6 +8,10 @@
             let rootPath = ''
             let title = ''
             let bookInfo = ''
+            let pages = []
+            let map = {}
+            let cover = ''
+            let funImages = []
 
             class Page {
                 id = ''
@@ -18,11 +22,31 @@
             let userPath = []
             let userPathMark = 0
 
+            function getCleanPath(path) {
+                path = path + ""
+                if (path.indexOf('#') >= 0) {
+                    path = path.substring(0, path.indexOf('#'))
+                }
+                if (path.indexOf('?') >= 0) {
+                    path = path.substring(0, path.indexOf('?'))
+                }
+                let parts = (path + '').split('/')
+                console.log(parts)
+                let npath = ''
+                for (let i in parts) {
+                    if (parts[i] === '') {
+                        continue
+                    }
+                    npath += parts[i] + (i < parts.length - 1 ? '/' : '')
+                }
+                return npath
+            }
+
             function fixEle(es, attr, click) {
-                for (i in es) {
+                for (let i in es) {
                     let a = es[i]
                     if (a[attr]) {
-                        let path = a[attr]
+                        let path = a[attr] + ""
                         let mask = window.location.protocol + '//' + window.location.host
                         if (path.indexOf(mask) < 0 && (path.indexOf('http://') >= 0 || path.indexOf('https://') >= 0)) {
                             continue
@@ -43,19 +67,7 @@
             }
 
             function openPage(path, move = false) {
-                let box = document.getElementById('pageBox')
-                let xml = new XMLHttpRequest()
-                xml.addEventListener('load', (ev) => {
-                    let data = document.createElement('div')
-                    data.innerHTML = xml.responseText
-                    
-                    fixEle(data.getElementsByTagName('a'), 'href', true)
-                    fixEle(data.getElementsByTagName('img'), 'src', false)
-                    fixEle(data.getElementsByTagName('link'), 'href', false)
-
-                    box.innerHTML = ""
-                    box.appendChild(data)
-
+                let moveHis = function (path, move) {
                     if (!move) {
                         if (userPath.length <= 0) {
                             userPath.push(path)
@@ -70,8 +82,33 @@
                             }
                         }
                     }
+                }
+
+                if (path === '') {
+                    toHome()
+                    moveHis(path, move)
+                    return
+                }
+                let box = document.getElementById('pageBox')
+                let xml = new XMLHttpRequest()
+                xml.addEventListener('load', (ev) => {
+                    let data = document.createElement('div')
+                    data.innerHTML = xml.responseText
+                    
+                    fixEle(data.getElementsByTagName('a'), 'href', true)
+                    fixEle(data.getElementsByTagName('img'), 'src', false)
+                    fixEle(data.getElementsByTagName('image'), 'href', false)
+                    fixEle(data.getElementsByTagName('image'), 'xlink:href', false)
+                    fixEle(data.getElementsByTagName('link'), 'href', false)
+
+                    box.innerHTML = ""
+                    box.appendChild(data)
+
+                    moveHis(path, move)
+                    
                     console.log(userPath)
                     console.log(userPathMark)
+                    box.scrollIntoView(true)
                 })
                 xml.open('GET', path)
                 xml.send()
@@ -98,6 +135,22 @@
             function toHome() {
                 document.getElementById('pageBox').innerHTML = bookInfo
             }
+
+            function toPrevious() {
+                let indice = map[getCleanPath(userPath[userPathMark])]
+                console.log(indice, pages.length, getCleanPath(userPath[userPathMark]))
+                if (indice > 0) {
+                    openPage(pages[indice - 1].path)
+                }
+            }
+
+            function toNext() {
+                let indice = map[getCleanPath(userPath[userPathMark])]
+                console.log(indice, pages.length, getCleanPath(userPath[userPathMark]))
+                if (indice < pages.length - 1) {
+                    openPage(pages[indice + 1].path)
+                }
+            }
         </script>
         <style>
             #table {
@@ -120,7 +173,7 @@
 
             #pageBox {
                 width: 100%;
-                padding: 84pt 56pt;
+                padding: 84pt 156pt;
                 box-sizing: border-box;
             }
 
@@ -154,6 +207,8 @@
                 background: #EAEAEA;
                 width: 26pt;
                 padding: 0pt 0pt 3pt 0pt;
+                border-radius: 5px;
+                z-index: 10;
             }
 
             .toolbar button {
@@ -166,15 +221,74 @@
                 background: #FFF;
                 font-weight: bold;
                 text-align: center;
+                border-radius: 5px;
+                cursor: pointer;
             }
             .toolbar button:hover {
                 background: #BBB;
+            }
+
+            .turnPage {
+                margin: 16pt 2pt;
+                border: none;
+                border-radius: 5px;
+                background: #EEE;
+                color: #121212;
+                padding: 3pt 6pt;
+                cursor: pointer;
+                border: solid 5px #FFF;
+                box-sizing: border-box;
+            }
+            .turnPage:hover {
+                background: #CCC;
+            }
+
+            .indentXXX {
+                margin-left: 156pt;
+            }
+            
+            .guideBar {
+                position: fixed;
+                left: 0px;
+                top: 0pt;
+                padding: 0pt;
+                color: black;
+                font-size: medium;
+                text-indent: 0cm;
+                z-index: 10;
+            }
+
+            body {
+                padding: 0pt;
+                background: #FFF;
+                color: black;
+                overflow-y: scroll;
+                font-size: medium;
+                text-indent: 0cm;
+            }
+
+            .title {
+                font-size: 24pt;
+                word-wrap: break-word;
+            }
+            
+            .cover {
+                width: 60%;
+            }
+
+            .outline {
+                width: 10%;
+                margin: 4pt;
             }
         </style>
     </head>
     <body>
         <div id="table">
 
+        </div>
+        <div class="guideBar">
+            <button onclick="toPrevious()" class="turnPage indentXXX">Previous</button> 
+            <button onclick="toNext()" class="turnPage">Next</button>
         </div>
         <div id="pageBox">
 
@@ -183,7 +297,7 @@
             <button onclick="goBack()">◀️</button>
             <button onclick="goAhead()">▶️</button>
             <button onclick="refresh()">🔁</button>
-            <button onclick="toHome()">🏠</button>
+            <button onclick="openPage('')">🏠</button>
         </div>
         <script>
 
@@ -191,38 +305,69 @@
                 let parse = new DOMParser()
                 let xdom = parse.parseFromString(metaData, 'text/xml')
 
-                let pages = []
-                let map = {}
+                pages = []
+                let home = new Page()
+                home.id = 'Info'
+                home.path = ''
+                home.title = 'Info'
+                pages.push(home)
+                map = { '': 0 }
+                cover = ''
+                funImages = []
 
                 title = xdom.getElementsByTagName('dc:title')[0].innerHTML
                 bookInfo = '<div class="title">' + title + '</div>'
-                toHome()
 
                 let items = xdom.getElementsByTagName('item')
                 for (let i = 0; i < items.length; i++) {
+                    if (items[i].getAttribute('id')) {
+                        if (items[i].getAttribute('id') === 'Cover' || items[i].getAttribute('id') === 'cover') {
+                            cover = rootPath + items[i].getAttribute('href')
+                        } else if (cover.length == 0 && items[i].getAttribute('media-type') && items[i].getAttribute('media-type').indexOf('image') >= 0) {
+                            cover = rootPath + items[i].getAttribute('href')
+                        } else if (cover.length != 0 && items[i].getAttribute('media-type') && items[i].getAttribute('media-type').indexOf('image') >= 0) {
+                            funImages.push(rootPath + items[i].getAttribute('href'))
+                        }
+                    }
                     if (!items[i].hasAttribute('media-type') || items[i].getAttribute('media-type').indexOf('html') >= 0) {
                         let page = new Page();
                         page.id = items[i].getAttribute('id')
-                        page.path = items[i].getAttribute('href')
+                        page.path = rootPath + items[i].getAttribute('href')
                         pages.push(page)
-                        map[page.path] = page
+                        map[getCleanPath(page.path)] = pages.length - 1
+                    }
+                }
+
+                if (cover.length > 0) {
+                    bookInfo += '<br /><img class="cover" src="' + cover + '" />'
+                }
+
+                if (funImages.length > 0) {
+                    for (let i in funImages) {
+                        bookInfo += '<img class="outline" src="' + funImages[i] + '" />'
                     }
                 }
 
                 let refs = xdom.getElementsByTagName('reference')
                 for (let i = 0; i < refs.length; i++) {
-                    if (map[refs[i].getAttribute('href')]) {
-                        map[refs[i].getAttribute('href')].title = refs[i].getAttribute('title')
+                    console.log(refs[i])
+                    let path = rootPath + refs[i].getAttribute('href')
+                    console.log(getCleanPath(path), map[getCleanPath(path)])
+                    if (map[getCleanPath(path)]) {
+                        pages[map[getCleanPath(path)]].title = refs[i].getAttribute('title')
                     }
                 }
 
-                for (i in pages) {
+                for (let i in pages) {
                     let table = document.getElementById('table')
                     let item = document.createElement('div')
-                    let call = 'openPage(\'' + rootPath + pages[i].path + '\')'
+                    let call = 'openPage(\'' + pages[i].path + '\')'
                     item.innerHTML = '<div class="flink item" onclick="' + call + '">' + (pages[i].title.length > 0 ? pages[i].title : pages[i].id) + '</div>'
                     table.append(item)
                 }
+
+                console.log(map)
+                openPage('')
             }
 
             let xml = new XMLHttpRequest()
