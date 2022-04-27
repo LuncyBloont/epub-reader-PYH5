@@ -7,12 +7,16 @@
             let metaData = ''
             let rootPath = ''
             let title = ''
+            let bookInfo = ''
 
             class Page {
                 id = ''
                 path = ''
                 title = ''
             }
+
+            let userPath = []
+            let userPathMark = 0
 
             function fixEle(es, attr, click) {
                 for (i in es) {
@@ -38,7 +42,7 @@
                 }
             }
 
-            function openPage(path) {
+            function openPage(path, move = false) {
                 let box = document.getElementById('pageBox')
                 let xml = new XMLHttpRequest()
                 xml.addEventListener('load', (ev) => {
@@ -49,10 +53,50 @@
                     fixEle(data.getElementsByTagName('img'), 'src', false)
                     fixEle(data.getElementsByTagName('link'), 'href', false)
 
-                    box.innerHTML = data.innerHTML
+                    box.innerHTML = ""
+                    box.appendChild(data)
+
+                    if (!move) {
+                        if (userPath.length <= 0) {
+                            userPath.push(path)
+                        } else {
+                            if (userPathMark + 1 >= userPath.length) {
+                                userPath.push(path)
+                                userPathMark = userPath.length - 1
+                            } else {
+                                userPath[userPathMark + 1] = path
+                                userPathMark += 1
+                                userPath.splice(userPathMark + 1, userPath.length - userPathMark - 1)
+                            }
+                        }
+                    }
+                    console.log(userPath)
+                    console.log(userPathMark)
                 })
                 xml.open('GET', path)
                 xml.send()
+            }
+
+            function goBack() {
+                if (userPathMark > 0) {
+                    userPathMark -= 1
+                    openPage(userPath[userPathMark], true)
+                }
+            }
+            
+            function goAhead() {
+                if (userPathMark + 1 < userPath.length) {
+                    userPathMark += 1
+                    openPage(userPath[userPathMark], true)
+                }
+            }
+
+            function refresh() {
+                openPage(userPath[userPathMark], true)
+            }
+
+            function toHome() {
+                document.getElementById('pageBox').innerHTML = bookInfo
             }
         </script>
         <style>
@@ -81,28 +125,65 @@
             }
 
             .flink {
-                color: blueviolet;
+                color: darkblue;
                 cursor: pointer;
             }
             .flink:hover {
-                color: blue;
+                color: darkorchid;
             }
             .flink:visited {
-                color: cadetblue;
+                color: darkolivegreen;
             }
 
             .item {
                 padding: 12pt 2pt;
                 box-sizing: border-box;
+                text-align: left;
+                font-size: medium;
+                font-style: normal;
+                font-weight: normal;
+                font-family: 'Courier New', Courier, monospace;
+                line-height: normal;
+                text-indent: 0em;
+            }
+
+            .toolbar {
+                position: fixed;
+                right: 5pt;
+                top: 5pt;
+                background: #EAEAEA;
+                width: 26pt;
+                padding: 0pt 0pt 3pt 0pt;
+            }
+
+            .toolbar button {
+                width: 80%;
+                font-size: 12pt;
+                margin: 3pt auto 0pt auto;
+                box-sizing: border-box;
+                display: block;
+                border: none;
+                background: #FFF;
+                font-weight: bold;
+                text-align: center;
+            }
+            .toolbar button:hover {
+                background: #BBB;
             }
         </style>
     </head>
     <body>
-        <div id = "table">
+        <div id="table">
 
         </div>
-        <div id = "pageBox">
+        <div id="pageBox">
 
+        </div>
+        <div class="toolbar">
+            <button onclick="goBack()">◀️</button>
+            <button onclick="goAhead()">▶️</button>
+            <button onclick="refresh()">🔁</button>
+            <button onclick="toHome()">🏠</button>
         </div>
         <script>
 
@@ -114,7 +195,8 @@
                 let map = {}
 
                 title = xdom.getElementsByTagName('dc:title')[0].innerHTML
-                document.getElementById('pageBox').innerHTML = '<div class="title">' + title + '</div>'
+                bookInfo = '<div class="title">' + title + '</div>'
+                toHome()
 
                 let items = xdom.getElementsByTagName('item')
                 for (let i = 0; i < items.length; i++) {
